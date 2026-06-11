@@ -1,0 +1,1316 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RTMY — Asistente de Cocina</title>
+<script>
+// ============================================================
+// RTMY — Libro de Recetas
+// Para añadir una receta: copia el bloque de una existente y
+// modifica los campos. Para editarla, modifica directamente.
+// ============================================================
+
+const RECIPES = [
+  {
+    id: "carrilleras",
+    name: "Carrilleras con Salsa",
+    servings_base: 8,
+    steps: [
+      { id: 1, desc: "Limpiar carrilleras, retirar membrana y exceso de grasa.", duration_min: 10, type: "activo" },
+      { id: 2, desc: "Salpimentar carrilleras y reposar en nevera.", duration_min: 15, type: "pasivo" },
+      { id: 3, desc: "Enharinar cada pieza y sacudir el exceso.", duration_min: 3, type: "activo" },
+      { id: 4, desc: "Sellar carrilleras en aceite caliente (inducción 8), 2–3 min por pieza. Reservar.", duration_min: 8, type: "activo" },
+      { id: 5, desc: "Dorar cebolla, zanahoria, ajo y puerro a fuego medio (inducción 5), 8–10 min.", duration_min: 10, type: "activo" },
+      { id: 6, desc: "Añadir tomate rallado y pimentón, cocinar 2 min.", duration_min: 2, type: "activo" },
+      { id: 7, desc: "Incorporar vino tinto y vermut, reducir a la mitad (inducción 7), ~5 min.", duration_min: 5, type: "activo" },
+      { id: 8, desc: "Añadir agua, laurel y romero. Repartir en dos ollas a presión con las carrilleras.", duration_min: 3, type: "activo" },
+      { id: 9, desc: "Cocer en olla a presión: llevar a presión (inducción 8), luego mantener 15 min (inducción 4).", duration_min: 25, type: "pasivo" },
+      { id: 10, desc: "Despresurizar de forma natural.", duration_min: 15, type: "pasivo" },
+      { id: 11, desc: "Retirar carrilleras, porcionar en raciones de 150 g. Reservar salsa.", duration_min: 10, type: "activo" }
+    ],
+    ingredients: [
+      { name: "Carrillera de cerdo", amount: 1200, unit: "g" },
+      { name: "Aceite de oliva", amount: 40, unit: "g" },
+      { name: "Cebolla cortada", amount: 200, unit: "g" },
+      { name: "Zanahoria en dados", amount: 150, unit: "g" },
+      { name: "Puerro", amount: 80, unit: "g" },
+      { name: "Ajo", amount: 20, unit: "g" },
+      { name: "Tomate rallado", amount: 150, unit: "g" },
+      { name: "Pimentón", amount: 5, unit: "g" },
+      { name: "Harina", amount: 30, unit: "g" },
+      { name: "Vino tinto", amount: 200, unit: "g" },
+      { name: "Vermut", amount: 200, unit: "g" },
+      { name: "Agua", amount: 300, unit: "g" },
+      { name: "Laurel", amount: 3, unit: "g" },
+      { name: "Romero", amount: 3, unit: "g" },
+      { name: "Sal", amount: 10, unit: "g" },
+      { name: "Pimienta", amount: 2, unit: "g" }
+    ]
+  },
+  {
+    id: "tiras_pollo",
+    name: "Tiras de Pollo",
+    servings_base: 6,
+    steps: [
+      { id: 1, desc: "Mezclar leche con zumo de limón, reposar 10 min a temperatura ambiente hasta que espese. Añadir especias de marinado.", duration_min: 10, type: "pasivo" },
+      { id: 2, desc: "Cortar pechugas en tiras de 1 cm. Sumergir en leche especiada, cubrir y refrigerar mínimo 6h (ideal 12h).", duration_min: 360, type: "pasivo" },
+      { id: 3, desc: "Triturar copos de maíz en trozos irregulares. Mezclar con sal, ajo y pimentón del empanado.", duration_min: 5, type: "activo" },
+      { id: 4, desc: "Preparar 3 estaciones: harina, huevos batidos, mezcla de copos de maíz. Sacar tiras y escurrir (NO secar).", duration_min: 5, type: "activo" },
+      { id: 5, desc: "Empanar: harina → huevo → copos de maíz.", duration_min: 10, type: "activo" },
+      { id: 6, desc: "Freír en aceite de girasol caliente (inducción 5) durante 4 minutos.", duration_min: 4, type: "activo" },
+      { id: 7, desc: "Escurrir y almacenar en raciones de 150 g.", duration_min: 5, type: "activo" }
+    ],
+    ingredients: [
+      { name: "Pechuga de pollo fileteada", amount: 1000, unit: "g" },
+      { name: "Leche", amount: 300, unit: "g" },
+      { name: "Zumo de limón", amount: 30, unit: "g" },
+      { name: "Sal (marinado)", amount: 10, unit: "g" },
+      { name: "Ajo en polvo (marinado)", amount: 4, unit: "g" },
+      { name: "Pimentón (marinado)", amount: 4, unit: "g" },
+      { name: "Cayena molida", amount: 2, unit: "g" },
+      { name: "Copos de maíz", amount: 200, unit: "g" },
+      { name: "Harina", amount: 80, unit: "g" },
+      { name: "Huevos", amount: 2, unit: "und" },
+      { name: "Sal (empanado)", amount: 5, unit: "g" },
+      { name: "Ajo en polvo (empanado)", amount: 2, unit: "g" },
+      { name: "Pimentón (empanado)", amount: 2, unit: "g" },
+      { name: "Aceite de girasol", amount: 1500, unit: "g" }
+    ]
+  },
+  {
+    id: "fumet_pescado",
+    name: "Fumet de Pescado de Roca",
+    servings_base: 10,
+    steps: [
+      { id: 1, desc: "Poner 5000 g de agua a calentar en olla grande.", duration_min: 10, type: "pasivo" },
+      { id: 2, desc: "Lavar el pescado con abundante agua fría. Cortar cebolla y tomate en trozos medianos.", duration_min: 5, type: "activo" },
+      { id: 3, desc: "Calentar parte del aceite en segunda olla. Dorar levemente el pescado (sin tostar).", duration_min: 5, type: "activo" },
+      { id: 4, desc: "Pasar el pescado dorado, sal y laurel a la olla con agua caliente.", duration_min: 2, type: "activo" },
+      { id: 5, desc: "En la misma olla del pescado, calentar el resto del aceite. Pochar ajo, cebolla y puerro 5 min.", duration_min: 5, type: "activo" },
+      { id: 6, desc: "Añadir zanahoria y pochar 3 min más.", duration_min: 3, type: "activo" },
+      { id: 7, desc: "Incorporar vino blanco y reducir.", duration_min: 4, type: "activo" },
+      { id: 8, desc: "Añadir tomate y cocinar 5 min.", duration_min: 5, type: "activo" },
+      { id: 9, desc: "Incorporar todas las verduras pochadas a la olla del pescado.", duration_min: 2, type: "activo" },
+      { id: 10, desc: "Cocer 25 min desde que hierve, retirando espuma periódicamente.", duration_min: 25, type: "pasivo" },
+      { id: 11, desc: "Apagar fuego. Reposar 10 min.", duration_min: 10, type: "pasivo" },
+      { id: 12, desc: "Esterilizar botes en agua hirviendo 15 min.", duration_min: 15, type: "pasivo" },
+      { id: 13, desc: "Llenar botes con 430 g de fumet caliente, tapar y colocar boca abajo. Dejar enfriar parcialmente.", duration_min: 10, type: "activo" },
+      { id: 14, desc: "Con fumet atemperado, envasar en bolsas de 430 g. Etiquetar con nombre y fecha.", duration_min: 10, type: "activo" },
+      { id: 15, desc: "Refrigerar mínimo 6 horas.", duration_min: 360, type: "pasivo" },
+      { id: 16, desc: "Una vez frío, colocar bolsas planas en bandeja en el congelador hasta que endurezcan.", duration_min: 120, type: "pasivo" }
+    ],
+    ingredients: [
+      { name: "Cabeza de rape", amount: 700, unit: "g" },
+      { name: "Pescado de roca", amount: 700, unit: "g" },
+      { name: "Ajo", amount: 30, unit: "g" },
+      { name: "Cebolla cortada", amount: 400, unit: "g" },
+      { name: "Puerro congelado", amount: 200, unit: "g" },
+      { name: "Zanahoria congelada", amount: 150, unit: "g" },
+      { name: "Tomate", amount: 150, unit: "g" },
+      { name: "Aceite de oliva", amount: 240, unit: "g" },
+      { name: "Vino blanco", amount: 160, unit: "g" },
+      { name: "Sal", amount: 30, unit: "g" },
+      { name: "Laurel", amount: 3, unit: "hojas" },
+      { name: "Agua", amount: 5000, unit: "g" }
+    ]
+  },
+  {
+    id: "cebolla_pochada",
+    name: "Cebolla Pochada para Paellas",
+    servings_base: 4,
+    steps: [
+      { id: 1, desc: "Pelar y cortar la cebolla en cubos pequeños.", duration_min: 5, type: "activo" },
+      { id: 2, desc: "Colocar cebolla en el vaso de la MCC con aceite y sal.", duration_min: 2, type: "activo" },
+      { id: 3, desc: "Programar MCC: 30 min, velocidad 1, 120°C, sin cubilete.", duration_min: 30, type: "pasivo" },
+      { id: 4, desc: "Bajar con espátula la cebolla adherida a las paredes. Tapar.", duration_min: 2, type: "activo" },
+      { id: 5, desc: "Programar MCC: 20 min, velocidad 1, 120°C. Comprobar que esté reducida y transparente.", duration_min: 20, type: "pasivo" },
+      { id: 6, desc: "Envasar, dejar atemperar y guardar refrigerada.", duration_min: 5, type: "activo" }
+    ],
+    ingredients: [
+      { name: "Cebolla", amount: 1000, unit: "g" },
+      { name: "Aceite de oliva", amount: 40, unit: "g" },
+      { name: "Sal", amount: 5, unit: "g" }
+    ]
+  },
+  {
+    id: "brownie",
+    name: "Brownie",
+    servings_base: 8,
+    steps: [
+      { id: 1, desc: "Precalentar el horno a 200°C.", duration_min: 15, type: "pasivo" },
+      { id: 2, desc: "Fundir mantequilla y chocolate en microondas 3 min a potencia media. Remover hasta mezcla homogénea.", duration_min: 5, type: "activo" },
+      { id: 3, desc: "Añadir azúcar a la mezcla caliente y mezclar lentamente.", duration_min: 2, type: "activo" },
+      { id: 4, desc: "Dejar enfriar la mezcla 10 min antes de añadir los huevos.", duration_min: 10, type: "pasivo" },
+      { id: 5, desc: "Incorporar los huevos uno por uno, mezclando lentamente tras cada uno.", duration_min: 3, type: "activo" },
+      { id: 6, desc: "Tamizar harina, cacao y sal. Incorporar a la mezcla y mezclar lentamente hasta masa homogénea.", duration_min: 5, type: "activo" },
+      { id: 7, desc: "Verter masa en molde preparado.", duration_min: 2, type: "activo" },
+      { id: 8, desc: "Hornear a 200°C durante 25 min.", duration_min: 25, type: "pasivo" },
+      { id: 9, desc: "Retirar del horno y dejar enfriar antes de cortar, mínimo 20 min.", duration_min: 20, type: "pasivo" }
+    ],
+    ingredients: [
+      { name: "Chocolate 70%", amount: 200, unit: "g" },
+      { name: "Mantequilla", amount: 115, unit: "g" },
+      { name: "Azúcar", amount: 200, unit: "g" },
+      { name: "Huevos", amount: 3, unit: "und" },
+      { name: "Harina", amount: 80, unit: "g" },
+      { name: "Sal", amount: 2, unit: "g" },
+      { name: "Cacao puro", amount: 25, unit: "g" }
+    ]
+  },
+  {
+    id: "tortillas",
+    name: "Tortillas",
+    servings_base: 4,
+    variants: [
+      { id: "sobrasada", label: "Sobrasada" },
+      { id: "alcachofas_queso", label: "Alcachofas y Queso" },
+      { id: "anchoas", label: "Anchoas" }
+    ],
+    steps: [
+      { id: 1, desc: "Laminar patatas y cebolla con mandolina.", duration_min: 10, type: "activo" },
+      { id: 2, desc: "Colocar patata y cebolla en olla a presión con aceite y sal. Tapar.", duration_min: 3, type: "activo" },
+      { id: 3, desc: "Cocinar en vitrocerámica nivel 3 durante 22 min.", duration_min: 22, type: "pasivo" },
+      { id: 4, desc: "Dejar enfriar, colar la base y porcionar en bolsas de 205 g. Refrigerar.", duration_min: 20, type: "pasivo" },
+      { id: 5, desc: "[SOBRASADA] Calentar sobrasada en microondas 1 min potencia media. Incorporar a mezcla de huevo y base. Añadir miel. Mezclar.", duration_min: 3, type: "activo", variant: "sobrasada" },
+      { id: 6, desc: "[ALCACHOFAS] Calentar y secar alcachofas en sartén. Incorporar a mezcla de huevo y base con queso. Mezclar.", duration_min: 8, type: "activo", variant: "alcachofas_queso" },
+      { id: 7, desc: "[ANCHOAS] Preparar mezcla base sin añadidos. Las anchoas se colocan al emplatar.", duration_min: 1, type: "activo", variant: "anchoas" },
+      { id: 8, desc: "Calentar bolsa de base en microondas 2 min potencia media. Batir 2 huevos. Mezclar base caliente con huevo.", duration_min: 4, type: "activo" },
+      { id: 9, desc: "Calentar sartén doble en vitrocerámica nivel 3 durante 3 min.", duration_min: 3, type: "pasivo" },
+      { id: 10, desc: "Volcar mezcla en sartén caliente. Cocinar 3 min, voltear, cocinar 3 min más.", duration_min: 6, type: "activo" },
+      { id: 11, desc: "Emplatar con 70 g de tomate rallado en vasito y rodaja de pan caliente.", duration_min: 2, type: "activo" }
+    ],
+    ingredients: {
+      base: [
+        { name: "Patata laminada", amount: 1000, unit: "g" },
+        { name: "Cebolla laminada", amount: 380, unit: "g" },
+        { name: "Aceite de oliva", amount: 100, unit: "g" },
+        { name: "Sal", amount: 20, unit: "g" },
+        { name: "Huevos", amount: 3, unit: "und/tortilla" }
+      ],
+      sobrasada: [
+        { name: "Sobrasada", amount: 30, unit: "g" },
+        { name: "Miel", amount: 8, unit: "g" }
+      ],
+      alcachofas_queso: [
+        { name: "Alcachofas cortadas", amount: 1, unit: "und" },
+        { name: "Queso curado cortado", amount: 48, unit: "g" }
+      ],
+      anchoas: [
+        { name: "Anchoas", amount: 2, unit: "und" }
+      ],
+      emplatado: [
+        { name: "Tomate rallado", amount: 70, unit: "g" },
+        { name: "Pan (rodaja)", amount: 1, unit: "und" }
+      ]
+    }
+  },
+  {
+    id: "salmorreta",
+    name: "Salmorreta",
+    servings_base: 8,
+    steps: [
+      { id: 1, desc: "Cortar tomates en cuartos y repartir en dos tuppers (~900 g cada uno).", duration_min: 5, type: "activo" },
+      { id: 2, desc: "Añadir aceite y ajo al vaso de la Thermomix grande. Programar 6 min, 120°C, vel. 1.", duration_min: 6, type: "pasivo" },
+      { id: 3, desc: "Añadir pimentón. Programar 30 seg, 120°C, vel. 1.", duration_min: 1, type: "pasivo" },
+      { id: 4, desc: "Añadir pulpa de ñora. Programar 3 min, 110°C, vel. 1, marcha atrás.", duration_min: 3, type: "pasivo" },
+      { id: 5, desc: "Añadir la mitad del tomate. Programar 15 min, 100°C, vel. 1, marcha atrás, sin cubilete.", duration_min: 15, type: "pasivo" },
+      { id: 6, desc: "Añadir el resto del tomate y la sal. Programar 20 min, 100°C, vel. 1, marcha atrás, sin cubilete.", duration_min: 20, type: "pasivo" },
+      { id: 7, desc: "Reposar 2 min con tapa puesta. Colocar cubilete con cuidado.", duration_min: 2, type: "pasivo" },
+      { id: 8, desc: "Triturar: 30 seg vel. 8, luego 1 min vel. 10 (sin temperatura).", duration_min: 2, type: "activo" },
+      { id: 9, desc: "Dejar reposar, envasar y conservar refrigerada.", duration_min: 5, type: "activo" }
+    ],
+    ingredients: [
+      { name: "Tomate cortado", amount: 1875, unit: "g" },
+      { name: "Aceite de oliva", amount: 405, unit: "g" },
+      { name: "Ajo pelado sin germen", amount: 95, unit: "g" },
+      { name: "Pulpa de ñora", amount: 125, unit: "g" },
+      { name: "Sal", amount: 22, unit: "g" },
+      { name: "Pimentón", amount: 9, unit: "g" }
+    ]
+  },
+  {
+    id: "tomate_confitado",
+    name: "Tomate Confitado",
+    servings_base: 4,
+    depends_on: ["salmorreta"],
+    steps: [
+      { id: 1, desc: "Lavar tomates cherry. Mezclar en bandeja con aceite, romero y sal. Impregnar bien los tomates.", duration_min: 5, type: "activo" },
+      { id: 2, desc: "Cocinar en MCC: 20 min, vel. 1, 180°C.", duration_min: 20, type: "pasivo" },
+      { id: 3, desc: "Mezclar tomates con 180 g de salmorreta. Reservar.", duration_min: 3, type: "activo" }
+    ],
+    ingredients: [
+      { name: "Tomates cherry", amount: 500, unit: "g" },
+      { name: "Sal", amount: 5, unit: "g" },
+      { name: "Aceite de oliva", amount: 10, unit: "g" },
+      { name: "Romero", amount: 10, unit: "g" },
+      { name: "Salmorreta", amount: 180, unit: "g" }
+    ]
+  },
+  {
+    id: "gazpacho",
+    name: "Gazpacho",
+    servings_base: 6,
+    steps: [
+      { id: 1, desc: "Lavar verduras. Pelar pepino. Retirar tallo y semillas del pimiento. Trocear todo en piezas de 3–4 cm.", duration_min: 8, type: "activo" },
+      { id: 2, desc: "Retirar germen del ajo, colocar en vaso con agua y calentar en microondas 1 min a máxima potencia. Escurrir.", duration_min: 3, type: "activo" },
+      { id: 3, desc: "Triturar tomate, pepino, pimiento, ajo y sal en MCC a vel. 10 durante 3 min.", duration_min: 3, type: "activo" },
+      { id: 4, desc: "Reducir a vel. 4. Con máquina en marcha, incorporar aceite por el bocal en hilo fino durante 2 min.", duration_min: 2, type: "activo" },
+      { id: 5, desc: "Añadir vinagre de Jerez. Mezclar 30 seg a vel. 5.", duration_min: 1, type: "activo" },
+      { id: 6, desc: "Envasar en jarra, tapar con film y refrigerar mínimo 2 horas.", duration_min: 120, type: "pasivo" }
+    ],
+    ingredients: [
+      { name: "Tomate", amount: 880, unit: "g" },
+      { name: "Pimiento rojo", amount: 75, unit: "g" },
+      { name: "Pepino", amount: 110, unit: "g" },
+      { name: "Ajo", amount: 11, unit: "g" },
+      { name: "Aceite de oliva", amount: 50, unit: "g" },
+      { name: "Vinagre de Jerez", amount: 22, unit: "g" },
+      { name: "Sal", amount: 7, unit: "g" }
+    ]
+  },
+  {
+    id: "mantequillas_compuestas",
+    name: "Mantequillas Compuestas",
+    servings_base: 3,
+    variants: [
+      { id: "ahumada", label: "Ahumada" },
+      { id: "cayena", label: "Picante de Cayena" },
+      { id: "tomillo_limon", label: "Tomillo y Limón" }
+    ],
+    steps: [
+      { id: 1, desc: "Sacar mantequilla de la nevera y atemperar 60–90 min hasta textura de pomada.", duration_min: 75, type: "pasivo" },
+      { id: 2, desc: "Trabajar la mantequilla pomada con espátula hasta homogénea y sin grumos.", duration_min: 3, type: "activo" },
+      { id: 3, desc: "[AHUMADA] Mezclar sal y aroma de humo. Incorporar a la mantequilla en dos tandas, mezclando bien.", duration_min: 3, type: "activo", variant: "ahumada" },
+      { id: 4, desc: "[CAYENA] Mezclar cayena, pimentón, ajo en polvo y sal. Incorporar a la mantequilla en dos tandas, mezclando bien.", duration_min: 3, type: "activo", variant: "cayena" },
+      { id: 5, desc: "[TOMILLO Y LIMÓN] Lavar limones, rallar piel (4 g). Mezclar con tomillo y sal. Incorporar a la mantequilla en dos tandas, mezclando bien.", duration_min: 5, type: "activo", variant: "tomillo_limon" },
+      { id: 6, desc: "Extender cada mantequilla sobre film formando un cilindro. Enrollar y apretar bordes.", duration_min: 5, type: "activo" },
+      { id: 7, desc: "Refrigerar mínimo 2 horas antes del primer servicio.", duration_min: 120, type: "pasivo" }
+    ],
+    ingredients: {
+      ahumada: [
+        { name: "Mantequilla", amount: 250, unit: "g" },
+        { name: "Aroma de humo en polvo", amount: 3, unit: "g" },
+        { name: "Sal", amount: 2, unit: "g" }
+      ],
+      cayena: [
+        { name: "Mantequilla", amount: 250, unit: "g" },
+        { name: "Cayena molida", amount: 2, unit: "g" },
+        { name: "Pimentón dulce", amount: 2, unit: "g" },
+        { name: "Ajo en polvo", amount: 1, unit: "g" },
+        { name: "Sal", amount: 2, unit: "g" }
+      ],
+      tomillo_limon: [
+        { name: "Mantequilla", amount: 250, unit: "g" },
+        { name: "Tomillo seco", amount: 2, unit: "g" },
+        { name: "Ralladura de limón", amount: 4, unit: "g" },
+        { name: "Sal", amount: 2, unit: "g" }
+      ]
+    }
+  },
+  {
+    id: "pan",
+    name: "Pan",
+    servings_base: 8,
+    steps: [
+      { id: 1, desc: "Calentar 270 g de agua a 40°C exactos (no superar).", duration_min: 3, type: "activo" },
+      { id: 2, desc: "Colocar en cubeta de panificadora: agua tibia + masa madre. Mezclar brevemente.", duration_min: 2, type: "activo" },
+      { id: 3, desc: "Añadir harina cubriendo toda la superficie. Hacer hueco y colocar levadura. Añadir sal en esquina opuesta.", duration_min: 3, type: "activo" },
+      { id: 4, desc: "Seleccionar programa 9 (amasado). Esperar a que finalice.", duration_min: 20, type: "pasivo" },
+      { id: 5, desc: "Retirar palas, dar forma al pan y colocar en cubeta limpia.", duration_min: 5, type: "activo" },
+      { id: 6, desc: "Fermentar tapado con paño húmedo mínimo 2 horas.", duration_min: 120, type: "pasivo" },
+      { id: 7, desc: "Seleccionar programa 15 (horneado). Esperar a que finalice.", duration_min: 60, type: "pasivo" },
+      { id: 8, desc: "Retirar pan de inmediato, desmoldar sobre rejilla.", duration_min: 2, type: "activo" },
+      { id: 9, desc: "Enfriar completamente antes de cortar, mínimo 45 min.", duration_min: 45, type: "pasivo" }
+    ],
+    ingredients: [
+      { name: "Harina", amount: 500, unit: "g" },
+      { name: "Levadura seca", amount: 2, unit: "g" },
+      { name: "Masa madre", amount: 100, unit: "g" },
+      { name: "Agua a 40°C", amount: 270, unit: "g" },
+      { name: "Sal", amount: 12, unit: "g" }
+    ]
+  },
+  {
+    id: "base_limonada",
+    name: "Base Limonada",
+    servings_base: 8,
+    steps: [
+      { id: 1, desc: "Rallar piel de limones hasta 15 g de ralladura. Exprimir y colar hasta obtener 800 g de zumo.", duration_min: 10, type: "activo" },
+      { id: 2, desc: "Introducir en MCC: agua, azúcar, ralladura y sal. Programar 8 min, 100°C, vel. 3, cubilete invertido.", duration_min: 8, type: "pasivo" },
+      { id: 3, desc: "Verificar que el azúcar esté disuelto. Añadir zumo de limón colado.", duration_min: 2, type: "activo" },
+      { id: 4, desc: "Programar 3 min, 90°C, vel. 2. No superar temperatura ni tiempo.", duration_min: 3, type: "pasivo" },
+      { id: 5, desc: "Colar, envasar herméticamente y conservar.", duration_min: 5, type: "activo" }
+    ],
+    ingredients: [
+      { name: "Zumo de limón colado", amount: 800, unit: "g" },
+      { name: "Ralladura de limón", amount: 15, unit: "g" },
+      { name: "Azúcar", amount: 1000, unit: "g" },
+      { name: "Sal", amount: 2, unit: "g" },
+      { name: "Agua", amount: 400, unit: "g" }
+    ]
+  }
+];
+
+</script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f5f5f0;
+    --surface: #ffffff;
+    --border: #e0e0d8;
+    --text: #1a1a1a;
+    --text-secondary: #555;
+    --accent: #c8392b;
+    --accent-light: #fdf0ee;
+    --pasivo: #e8f4fd;
+    --pasivo-border: #2980b9;
+    --activo: #eafaf1;
+    --activo-border: #27ae60;
+    --done: #f0f0f0;
+    --done-text: #aaa;
+    --tag-bg: #2c2c2c;
+    --tag-text: #fff;
+    --radius: 8px;
+    --shadow: 0 2px 8px rgba(0,0,0,0.08);
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 16px;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  header {
+    background: var(--text);
+    color: white;
+    padding: 20px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  header h1 { font-size: 1.2rem; font-weight: 700; letter-spacing: 0.02em; }
+  header span { font-size: 0.85rem; opacity: 0.6; }
+
+  .container { max-width: 860px; margin: 0 auto; padding: 24px 16px; }
+
+  /* ---- SCREENS ---- */
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* ---- STEP INDICATORS ---- */
+  .steps-nav {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 28px;
+    align-items: center;
+  }
+  .step-dot {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: var(--border);
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .step-dot.active { background: var(--accent); color: white; }
+  .step-dot.done { background: var(--text); color: white; }
+  .step-line { flex: 1; height: 2px; background: var(--border); }
+  .step-line.done { background: var(--text); }
+
+  /* ---- RECIPE SELECTOR ---- */
+  .section-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .section-sub {
+    font-size: 0.88rem;
+    color: var(--text-secondary);
+    margin-bottom: 20px;
+  }
+
+  .recipe-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+
+  .recipe-card {
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    cursor: pointer;
+    background: var(--surface);
+    transition: border-color 0.15s, box-shadow 0.15s;
+    user-select: none;
+  }
+  .recipe-card:hover { border-color: #bbb; box-shadow: var(--shadow); }
+  .recipe-card.selected { border-color: var(--accent); background: var(--accent-light); }
+  .recipe-card .card-name { font-weight: 600; font-size: 0.95rem; margin-bottom: 4px; }
+  .recipe-card .card-meta { font-size: 0.78rem; color: var(--text-secondary); }
+  .recipe-card .card-dep {
+    font-size: 0.74rem;
+    color: var(--accent);
+    margin-top: 4px;
+    font-style: italic;
+  }
+  .recipe-card.selected .card-meta { color: #8b2318; }
+
+  /* ---- VARIANTS ---- */
+  .variants-section { margin-bottom: 28px; }
+  .variant-group { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 12px; }
+  .variant-group h3 { font-size: 0.95rem; font-weight: 700; margin-bottom: 12px; }
+  .variant-options { display: flex; flex-wrap: wrap; gap: 8px; }
+  .variant-btn {
+    border: 2px solid var(--border);
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    background: white;
+    transition: all 0.15s;
+  }
+  .variant-btn:hover { border-color: #aaa; }
+  .variant-btn.selected { border-color: var(--accent); background: var(--accent-light); color: var(--accent); font-weight: 600; }
+  .variant-btn.selected-all { border-color: var(--text); background: var(--text); color: white; }
+
+  /* ---- SCALING ---- */
+  .scaling-section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 28px; }
+  .scaling-section h3 { font-size: 0.95rem; font-weight: 700; margin-bottom: 16px; }
+  .scaling-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+  .scaling-row label { min-width: 180px; font-size: 0.9rem; }
+  .scaling-row .qty-control { display: flex; align-items: center; gap: 0; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .qty-btn { width: 36px; height: 36px; background: var(--bg); border: none; font-size: 1.1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .qty-btn:hover { background: var(--border); }
+  .qty-display { width: 48px; text-align: center; font-weight: 700; font-size: 0.95rem; border: none; border-left: 1px solid var(--border); border-right: 1px solid var(--border); height: 36px; display: flex; align-items: center; justify-content: center; }
+
+  /* ---- BUTTONS ---- */
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 12px 24px;
+    border-radius: var(--radius);
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: opacity 0.15s, transform 0.1s;
+  }
+  .btn:active { transform: scale(0.98); }
+  .btn-primary { background: var(--accent); color: white; }
+  .btn-primary:hover { opacity: 0.9; }
+  .btn-primary:disabled { background: var(--border); color: var(--text-secondary); cursor: not-allowed; transform: none; }
+  .btn-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+  .btn-secondary:hover { background: var(--bg); }
+  .btn-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+
+  /* ---- PLAN SCREEN ---- */
+  .plan-header {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .plan-header .total-time { font-size: 0.9rem; color: var(--text-secondary); }
+  .plan-header .total-time strong { color: var(--text); font-size: 1.1rem; }
+  .progress-bar-wrap { flex: 1; min-width: 160px; }
+  .progress-bar { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+  .progress-bar-fill { height: 100%; background: var(--accent); border-radius: 3px; transition: width 0.4s; }
+  .progress-label { font-size: 0.78rem; color: var(--text-secondary); margin-top: 4px; }
+
+  /* ---- STEP LIST ---- */
+  .step-list { display: flex; flex-direction: column; gap: 10px; }
+
+  .step-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    transition: opacity 0.2s;
+  }
+  .step-item.type-pasivo { border-left-color: var(--pasivo-border); background: var(--pasivo); }
+  .step-item.type-activo { border-left-color: var(--activo-border); background: var(--activo); }
+  .step-item.done { opacity: 0.45; background: var(--done) !important; border-left-color: var(--border) !important; }
+  .step-item.current { box-shadow: 0 0 0 2px var(--accent); }
+
+  .step-check {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    flex-shrink: 0;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.85rem;
+    margin-top: 1px;
+    transition: background 0.15s, border-color 0.15s;
+    background: white;
+  }
+  .step-check:hover { border-color: var(--accent); }
+  .step-item.done .step-check { background: var(--text); border-color: var(--text); color: white; }
+
+  .step-body { flex: 1; }
+  .step-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 6px; align-items: center; }
+  .tag {
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 12px;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+  }
+  .tag-recipe { background: var(--tag-bg); color: var(--tag-text); }
+  .tag-pasivo { background: var(--pasivo-border); color: white; }
+  .tag-activo { background: var(--activo-border); color: white; }
+  .tag-dep { background: #e67e22; color: white; }
+
+  .step-desc { font-size: 0.95rem; line-height: 1.5; }
+  .step-item.done .step-desc { text-decoration: line-through; color: var(--done-text); }
+
+  .step-timer {
+    display: flex; align-items: center; gap: 8px;
+    margin-top: 8px;
+  }
+  .timer-display {
+    font-size: 1.3rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    min-width: 60px;
+  }
+  .timer-display.running { color: var(--pasivo-border); }
+  .timer-display.done-timer { color: #27ae60; }
+  .timer-display.overdue { color: var(--accent); }
+  .timer-btn {
+    padding: 5px 12px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+  }
+  .timer-btn.start { background: var(--pasivo-border); color: white; }
+  .timer-btn.stop { background: #e74c3c; color: white; }
+  .timer-btn.reset { background: var(--border); color: var(--text); }
+
+  /* ---- INGREDIENT LIST ---- */
+  .ingredients-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+  .ingredients-panel h3 { font-size: 1rem; font-weight: 700; margin-bottom: 14px; }
+  .ing-recipe { margin-bottom: 16px; }
+  .ing-recipe h4 { font-size: 0.85rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .ing-list { list-style: none; }
+  .ing-list li { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+  .ing-list li:last-child { border-bottom: none; }
+  .ing-amount { font-weight: 600; color: var(--accent); }
+
+  /* ---- TABS ---- */
+  .tabs { display: flex; gap: 0; margin-bottom: 20px; border-bottom: 2px solid var(--border); }
+  .tab-btn {
+    padding: 10px 20px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    border: none;
+    background: none;
+    cursor: pointer;
+    color: var(--text-secondary);
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    transition: color 0.15s;
+  }
+  .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* ---- DEPENDENCY WARNING ---- */
+  .dep-warning {
+    background: #fef9e7;
+    border: 1px solid #f39c12;
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    font-size: 0.88rem;
+    color: #7d6608;
+    margin-bottom: 20px;
+    display: none;
+  }
+  .dep-warning.visible { display: block; }
+
+  /* ---- FINISH SCREEN ---- */
+  .finish-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 32px;
+    text-align: center;
+  }
+  .finish-card .emoji { font-size: 3rem; margin-bottom: 12px; }
+  .finish-card h2 { font-size: 1.4rem; margin-bottom: 8px; }
+  .finish-card p { color: var(--text-secondary); margin-bottom: 24px; }
+
+  @media (max-width: 560px) {
+    .recipe-grid { grid-template-columns: 1fr 1fr; }
+    .plan-header { flex-direction: column; align-items: flex-start; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>RTMY · Asistente de Cocina</h1>
+    <span id="header-sub">Selecciona las recetas que vas a preparar</span>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- NAV DOTS -->
+  <div class="steps-nav">
+    <div class="step-dot active" id="dot-1">1</div>
+    <div class="step-line" id="line-1"></div>
+    <div class="step-dot" id="dot-2">2</div>
+    <div class="step-line" id="line-2"></div>
+    <div class="step-dot" id="dot-3">3</div>
+    <div class="step-line" id="line-3"></div>
+    <div class="step-dot" id="dot-4">4</div>
+  </div>
+
+  <!-- SCREEN 1: SELECCIÓN DE RECETAS -->
+  <div class="screen active" id="screen-1">
+    <div class="section-title">¿Qué vas a preparar hoy?</div>
+    <div class="section-sub">Selecciona una o varias recetas. El asistente ordenará todos los pasos de forma optimizada.</div>
+
+    <div class="recipe-grid" id="recipe-grid"></div>
+
+    <div class="dep-warning" id="dep-warning"></div>
+
+    <div class="btn-row">
+      <button class="btn btn-primary" id="btn-next-1" disabled onclick="goToScreen2()">Continuar →</button>
+    </div>
+  </div>
+
+  <!-- SCREEN 2: VARIANTES Y ESCALADO -->
+  <div class="screen" id="screen-2">
+    <div class="section-title">Ajustes de receta</div>
+    <div class="section-sub">Configura variantes y cantidades para cada receta seleccionada.</div>
+
+    <div id="variants-container"></div>
+    <div id="scaling-container"></div>
+
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="goToScreen1()">← Volver</button>
+      <button class="btn btn-primary" onclick="goToScreen3()">Generar plan →</button>
+    </div>
+  </div>
+
+  <!-- SCREEN 3: PLAN DE TRABAJO -->
+  <div class="screen" id="screen-3">
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('plan')">📋 Plan de trabajo</button>
+      <button class="tab-btn" onclick="switchTab('ingredients')">🧂 Ingredientes</button>
+    </div>
+
+    <div class="tab-panel active" id="tab-plan">
+      <div class="plan-header">
+        <div class="total-time">Tiempo total estimado: <strong id="total-time-label">—</strong></div>
+        <div class="progress-bar-wrap">
+          <div class="progress-bar"><div class="progress-bar-fill" id="progress-fill" style="width:0%"></div></div>
+          <div class="progress-label" id="progress-label">0 de 0 pasos completados</div>
+        </div>
+      </div>
+      <div class="step-list" id="step-list"></div>
+    </div>
+
+    <div class="tab-panel" id="tab-ingredients">
+      <div class="ingredients-panel" id="ingredients-panel"></div>
+    </div>
+
+    <div class="btn-row" style="margin-top:24px">
+      <button class="btn btn-secondary" onclick="goToScreen2()">← Ajustar</button>
+      <button class="btn btn-primary" onclick="resetAll()">🔄 Nueva sesión</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ============================================================
+// STATE
+// ============================================================
+let selectedRecipes = new Set();
+let selectedVariants = {};  // recipeId -> Set of variantIds
+let servingsMultiplier = {}; // recipeId -> multiplier
+let planSteps = [];
+let timers = {}; // stepKey -> { interval, remaining, running }
+let completedSteps = new Set();
+
+// ============================================================
+// SCREEN NAVIGATION
+// ============================================================
+function setScreen(n) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + n).classList.add('active');
+  for (let i = 1; i <= 4; i++) {
+    const dot = document.getElementById('dot-' + i);
+    if (i < n) { dot.className = 'step-dot done'; dot.textContent = '✓'; }
+    else if (i === n) { dot.className = 'step-dot active'; dot.textContent = i; }
+    else { dot.className = 'step-dot'; dot.textContent = i; }
+  }
+  for (let i = 1; i <= 3; i++) {
+    document.getElementById('line-' + i).className = 'step-line' + (i < n ? ' done' : '');
+  }
+  const subs = ['Selecciona las recetas que vas a preparar', 'Configura variantes y cantidades', 'Tu plan de trabajo optimizado', '¡Listo!'];
+  document.getElementById('header-sub').textContent = subs[n - 1];
+}
+
+function goToScreen1() { setScreen(1); }
+
+function goToScreen2() {
+  buildScreen2();
+  setScreen(2);
+}
+
+function goToScreen3() {
+  buildPlan();
+  setScreen(3);
+}
+
+// ============================================================
+// SCREEN 1 — RECIPE SELECTOR
+// ============================================================
+function buildScreen1() {
+  const grid = document.getElementById('recipe-grid');
+  grid.innerHTML = '';
+  RECIPES.forEach(r => {
+    const card = document.createElement('div');
+    card.className = 'recipe-card' + (selectedRecipes.has(r.id) ? ' selected' : '');
+    card.dataset.id = r.id;
+
+    const totalMin = r.steps.reduce((a, s) => a + s.duration_min, 0);
+    const h = Math.floor(totalMin / 60), m = totalMin % 60;
+    const timeStr = h > 0 ? `${h}h ${m > 0 ? m + 'min' : ''}` : `${m} min`;
+
+    const activeMin = r.steps.filter(s => s.type === 'activo').reduce((a, s) => a + s.duration_min, 0);
+
+    let depHtml = '';
+    if (r.depends_on && r.depends_on.length) {
+      const names = r.depends_on.map(id => RECIPES.find(x => x.id === id)?.name || id);
+      depHtml = `<div class="card-dep">⚠ Requiere: ${names.join(', ')}</div>`;
+    }
+
+    card.innerHTML = `
+      <div class="card-name">${r.name}</div>
+      <div class="card-meta">⏱ ${timeStr} total · ${activeMin} min activos</div>
+      ${depHtml}
+    `;
+    card.addEventListener('click', () => toggleRecipe(r.id, card));
+    grid.appendChild(card);
+  });
+  updateNextButton();
+}
+
+function toggleRecipe(id, card) {
+  if (selectedRecipes.has(id)) {
+    selectedRecipes.delete(id);
+    card.classList.remove('selected');
+  } else {
+    selectedRecipes.add(id);
+    card.classList.add('selected');
+  }
+  checkDependencies();
+  updateNextButton();
+}
+
+function checkDependencies() {
+  const warnings = [];
+  const autoAdded = [];
+  selectedRecipes.forEach(id => {
+    const r = RECIPES.find(x => x.id === id);
+    if (r && r.depends_on) {
+      r.depends_on.forEach(depId => {
+        if (!selectedRecipes.has(depId)) {
+          const depName = RECIPES.find(x => x.id === depId)?.name || depId;
+          const recipeName = r.name;
+          warnings.push(`<strong>${recipeName}</strong> necesita <strong>${depName}</strong>. Se añadirá automáticamente.`);
+          autoAdded.push(depId);
+        }
+      });
+    }
+  });
+  autoAdded.forEach(id => {
+    selectedRecipes.add(id);
+    const card = document.querySelector(`.recipe-card[data-id="${id}"]`);
+    if (card) card.classList.add('selected');
+  });
+  const warn = document.getElementById('dep-warning');
+  if (warnings.length) {
+    warn.innerHTML = '⚠ ' + warnings.join('<br>');
+    warn.classList.add('visible');
+  } else {
+    warn.classList.remove('visible');
+  }
+}
+
+function updateNextButton() {
+  document.getElementById('btn-next-1').disabled = selectedRecipes.size === 0;
+}
+
+// ============================================================
+// SCREEN 2 — VARIANTS & SCALING
+// ============================================================
+function buildScreen2() {
+  const variantsContainer = document.getElementById('variants-container');
+  const scalingContainer = document.getElementById('scaling-container');
+  variantsContainer.innerHTML = '';
+  scalingContainer.innerHTML = '';
+
+  const recipesWithVariants = [...selectedRecipes].map(id => RECIPES.find(r => r.id === id)).filter(r => r && r.variants && r.variants.length);
+  const allRecipes = [...selectedRecipes].map(id => RECIPES.find(r => r.id === id)).filter(Boolean);
+
+  if (recipesWithVariants.length) {
+    const section = document.createElement('div');
+    section.className = 'variants-section';
+    section.innerHTML = '<div class="section-title" style="margin-bottom:14px">Variantes</div>';
+
+    recipesWithVariants.forEach(r => {
+      if (!selectedVariants[r.id]) selectedVariants[r.id] = new Set(r.variants.map(v => v.id));
+
+      const group = document.createElement('div');
+      group.className = 'variant-group';
+      group.innerHTML = `<h3>${r.name}</h3>`;
+      const opts = document.createElement('div');
+      opts.className = 'variant-options';
+
+      const allBtn = document.createElement('button');
+      allBtn.className = 'variant-btn selected-all';
+      allBtn.textContent = 'Todas';
+      allBtn.addEventListener('click', () => {
+        selectedVariants[r.id] = new Set(r.variants.map(v => v.id));
+        renderVariantBtns(r, opts);
+      });
+      opts.appendChild(allBtn);
+
+      r.variants.forEach(v => {
+        const btn = document.createElement('button');
+        btn.className = 'variant-btn' + (selectedVariants[r.id].has(v.id) ? ' selected' : '');
+        btn.textContent = v.label;
+        btn.dataset.vid = v.id;
+        btn.addEventListener('click', () => {
+          if (selectedVariants[r.id].has(v.id)) {
+            selectedVariants[r.id].delete(v.id);
+          } else {
+            selectedVariants[r.id].add(v.id);
+          }
+          if (selectedVariants[r.id].size === 0) selectedVariants[r.id] = new Set([v.id]);
+          renderVariantBtns(r, opts);
+        });
+        opts.appendChild(btn);
+      });
+
+      group.appendChild(opts);
+      section.appendChild(group);
+    });
+    variantsContainer.appendChild(section);
+  }
+
+  // Scaling
+  const scalingSection = document.createElement('div');
+  scalingSection.className = 'scaling-section';
+  scalingSection.innerHTML = '<h3>Cantidades (número de raciones)</h3>';
+
+  allRecipes.forEach(r => {
+    if (!servingsMultiplier[r.id]) servingsMultiplier[r.id] = 1;
+    const row = document.createElement('div');
+    row.className = 'scaling-row';
+    row.innerHTML = `
+      <label>${r.name} <span style="color:var(--text-secondary);font-size:0.8rem">(base: ${r.servings_base} raciones)</span></label>
+      <div class="qty-control">
+        <button class="qty-btn" data-id="${r.id}" data-action="dec">−</button>
+        <div class="qty-display" id="qty-${r.id}">${servingsMultiplier[r.id]}×</div>
+        <button class="qty-btn" data-id="${r.id}" data-action="inc">+</button>
+      </div>
+      <span style="font-size:0.8rem;color:var(--text-secondary)" id="servings-label-${r.id}">${r.servings_base * servingsMultiplier[r.id]} raciones</span>
+    `;
+    scalingSection.appendChild(row);
+  });
+
+  scalingSection.addEventListener('click', e => {
+    const btn = e.target.closest('.qty-btn');
+    if (!btn) return;
+    const id = btn.dataset.id;
+    const action = btn.dataset.action;
+    if (action === 'inc') servingsMultiplier[id] = Math.min(20, (servingsMultiplier[id] || 1) + 1);
+    if (action === 'dec') servingsMultiplier[id] = Math.max(1, (servingsMultiplier[id] || 1) - 1);
+    document.getElementById('qty-' + id).textContent = servingsMultiplier[id] + '×';
+    const r = RECIPES.find(x => x.id === id);
+    document.getElementById('servings-label-' + id).textContent = r.servings_base * servingsMultiplier[id] + ' raciones';
+  });
+
+  scalingContainer.appendChild(scalingSection);
+}
+
+function renderVariantBtns(r, container) {
+  container.querySelectorAll('.variant-btn:not(.selected-all)').forEach(btn => {
+    btn.className = 'variant-btn' + (selectedVariants[r.id].has(btn.dataset.vid) ? ' selected' : '');
+  });
+}
+
+// ============================================================
+// PLAN BUILDER — SCHEDULING ALGORITHM
+// ============================================================
+function buildPlan() {
+  completedSteps = new Set();
+  timers = {};
+  planSteps = [];
+
+  // Collect all steps from selected recipes, filtering variants
+  const allSteps = [];
+
+  [...selectedRecipes].forEach(recipeId => {
+    const recipe = RECIPES.find(r => r.id === recipeId);
+    if (!recipe) return;
+
+    recipe.steps.forEach(step => {
+      // Skip steps that belong to a specific variant not selected
+      if (step.variant) {
+        const selected = selectedVariants[recipeId];
+        if (selected && !selected.has(step.variant)) return;
+      }
+      allSteps.push({
+        key: `${recipeId}_${step.id}`,
+        recipeId,
+        recipeName: recipe.name,
+        stepId: step.id,
+        desc: step.desc,
+        duration_min: step.duration_min,
+        type: step.type,
+        depends_on: recipe.depends_on || []
+      });
+    });
+  });
+
+  // Sort: prioritize long passive steps first, then by recipe dependency order,
+  // then active steps. Within same type, longer duration first.
+  allSteps.sort((a, b) => {
+    // Dependency: if recipe B depends on recipe A, A's steps come first
+    const bDependsOnA = b.depends_on.includes(a.recipeId);
+    const aDependsOnB = a.depends_on.includes(b.recipeId);
+    if (bDependsOnA) return -1;
+    if (aDependsOnB) return 1;
+
+    // Long passive steps first
+    const scoreA = a.type === 'pasivo' ? a.duration_min * 2 : a.duration_min;
+    const scoreB = b.type === 'pasivo' ? b.duration_min * 2 : b.duration_min;
+    return scoreB - scoreA;
+  });
+
+  // Rebuild maintaining sequential order within each recipe
+  const recipeOrder = getOptimalRecipeOrder();
+  planSteps = [];
+  recipeOrder.forEach(recipeId => {
+    const steps = allSteps.filter(s => s.recipeId === recipeId);
+    // Keep original step order within recipe, but flag the first step of each
+    steps.sort((a, b) => a.stepId - b.stepId);
+    planSteps.push(...steps);
+  });
+
+  renderPlan();
+  renderIngredients();
+}
+
+function getOptimalRecipeOrder() {
+  // Sort recipes: dependencies first, then by longest passive time descending
+  const recipes = [...selectedRecipes].map(id => RECIPES.find(r => r.id === id)).filter(Boolean);
+
+  const sorted = [];
+  const remaining = new Set(recipes.map(r => r.id));
+
+  // Topological sort + priority
+  while (remaining.size > 0) {
+    const available = [...remaining].filter(id => {
+      const r = RECIPES.find(x => x.id === id);
+      return !r.depends_on || r.depends_on.every(dep => !remaining.has(dep));
+    });
+
+    // Among available, pick the one with longest passive time
+    available.sort((a, b) => {
+      const ra = RECIPES.find(x => x.id === a);
+      const rb = RECIPES.find(x => x.id === b);
+      const passiveA = ra.steps.filter(s => s.type === 'pasivo').reduce((acc, s) => acc + s.duration_min, 0);
+      const passiveB = rb.steps.filter(s => s.type === 'pasivo').reduce((acc, s) => acc + s.duration_min, 0);
+      return passiveB - passiveA;
+    });
+
+    if (available.length === 0) {
+      // Cycle or unresolved dep — add remaining as-is
+      [...remaining].forEach(id => { sorted.push(id); remaining.delete(id); });
+      break;
+    }
+
+    sorted.push(available[0]);
+    remaining.delete(available[0]);
+  }
+
+  return sorted;
+}
+
+// ============================================================
+// RENDER PLAN
+// ============================================================
+function renderPlan() {
+  const list = document.getElementById('step-list');
+  list.innerHTML = '';
+
+  // Total time = sum of all steps (rough estimate)
+  const totalMin = planSteps.reduce((a, s) => a + s.duration_min, 0);
+  const h = Math.floor(totalMin / 60), m = totalMin % 60;
+  document.getElementById('total-time-label').textContent = h > 0 ? `${h}h ${m > 0 ? m + 'min' : ''}` : `${m} min`;
+
+  updateProgress();
+
+  planSteps.forEach((step, idx) => {
+    const item = document.createElement('div');
+    item.className = `step-item type-${step.type}${completedSteps.has(step.key) ? ' done' : ''}`;
+    item.id = 'step-' + step.key;
+    if (idx === 0 && !completedSteps.has(step.key)) item.classList.add('current');
+
+    const dur = step.duration_min >= 60
+      ? `${Math.floor(step.duration_min/60)}h ${step.duration_min%60 > 0 ? step.duration_min%60 + 'min' : ''}`
+      : `${step.duration_min} min`;
+
+    const timerHtml = step.type === 'pasivo' ? `
+      <div class="step-timer">
+        <span class="timer-display" id="timer-${step.key}">${formatTime(step.duration_min * 60)}</span>
+        <button class="timer-btn start" id="tbtn-${step.key}" onclick="toggleTimer('${step.key}', ${step.duration_min * 60})">▶ Iniciar</button>
+      </div>
+    ` : '';
+
+    const mult = servingsMultiplier[step.recipeId] || 1;
+
+    item.innerHTML = `
+      <div class="step-check" onclick="toggleStep('${step.key}')">${completedSteps.has(step.key) ? '✓' : ''}</div>
+      <div class="step-body">
+        <div class="step-tags">
+          <span class="tag tag-recipe">${step.recipeName}${mult > 1 ? ' ×' + mult : ''}</span>
+          <span class="tag tag-${step.type}">${step.type === 'pasivo' ? '⏸ Pasivo · ' + dur : '👋 Activo · ' + dur}</span>
+        </div>
+        <div class="step-desc">${step.desc}</div>
+        ${timerHtml}
+      </div>
+    `;
+
+    list.appendChild(item);
+  });
+}
+
+function toggleStep(key) {
+  if (completedSteps.has(key)) {
+    completedSteps.delete(key);
+  } else {
+    completedSteps.add(key);
+    // Stop timer if running
+    if (timers[key] && timers[key].running) stopTimer(key);
+  }
+  // Re-render the item
+  const item = document.getElementById('step-' + key);
+  if (!item) return;
+  const isDone = completedSteps.has(key);
+  item.classList.toggle('done', isDone);
+  const check = item.querySelector('.step-check');
+  check.textContent = isDone ? '✓' : '';
+
+  // Update current highlight
+  document.querySelectorAll('.step-item.current').forEach(el => el.classList.remove('current'));
+  const firstPending = planSteps.find(s => !completedSteps.has(s.key));
+  if (firstPending) {
+    const el = document.getElementById('step-' + firstPending.key);
+    if (el) el.classList.add('current');
+  }
+
+  updateProgress();
+
+  // Check if all done
+  if (completedSteps.size === planSteps.length) showFinish();
+}
+
+function updateProgress() {
+  const total = planSteps.length;
+  const done = completedSteps.size;
+  const pct = total > 0 ? Math.round(done / total * 100) : 0;
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-label').textContent = `${done} de ${total} pasos completados (${pct}%)`;
+}
+
+// ============================================================
+// TIMERS
+// ============================================================
+function formatTime(secs) {
+  const m = Math.floor(secs / 60), s = secs % 60;
+  return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+function toggleTimer(key, totalSecs) {
+  if (!timers[key]) timers[key] = { remaining: totalSecs, running: false, interval: null };
+  const t = timers[key];
+  if (t.running) {
+    stopTimer(key);
+  } else {
+    startTimer(key, totalSecs);
+  }
+}
+
+function startTimer(key, totalSecs) {
+  if (!timers[key]) timers[key] = { remaining: totalSecs, running: false, interval: null };
+  const t = timers[key];
+  if (t.remaining <= 0) t.remaining = totalSecs;
+  t.running = true;
+
+  const display = document.getElementById('timer-' + key);
+  const btn = document.getElementById('tbtn-' + key);
+  if (btn) { btn.textContent = '⏸ Pausar'; btn.className = 'timer-btn stop'; }
+  if (display) display.classList.add('running');
+
+  t.interval = setInterval(() => {
+    t.remaining--;
+    const d = document.getElementById('timer-' + key);
+    const b = document.getElementById('tbtn-' + key);
+    if (t.remaining <= 0) {
+      clearInterval(t.interval);
+      t.running = false;
+      t.remaining = 0;
+      if (d) { d.textContent = '00:00'; d.className = 'timer-display done-timer'; }
+      if (b) { b.textContent = '✓ Listo'; b.className = 'timer-btn reset'; b.onclick = () => resetTimer(key, totalSecs); }
+      // Auto-check step
+      if (!completedSteps.has(key)) toggleStep(key);
+    } else {
+      if (d) d.textContent = formatTime(t.remaining);
+    }
+  }, 1000);
+}
+
+function stopTimer(key) {
+  const t = timers[key];
+  if (!t) return;
+  clearInterval(t.interval);
+  t.running = false;
+  const btn = document.getElementById('tbtn-' + key);
+  if (btn) { btn.textContent = '▶ Reanudar'; btn.className = 'timer-btn start'; }
+  const display = document.getElementById('timer-' + key);
+  if (display) display.classList.remove('running');
+}
+
+function resetTimer(key, totalSecs) {
+  if (timers[key]) { clearInterval(timers[key].interval); timers[key] = null; }
+  const display = document.getElementById('timer-' + key);
+  const btn = document.getElementById('tbtn-' + key);
+  if (display) { display.textContent = formatTime(totalSecs); display.className = 'timer-display'; }
+  if (btn) { btn.textContent = '▶ Iniciar'; btn.className = 'timer-btn start'; btn.onclick = () => toggleTimer(key, totalSecs); }
+}
+
+// ============================================================
+// INGREDIENTS
+// ============================================================
+function renderIngredients() {
+  const panel = document.getElementById('ingredients-panel');
+  panel.innerHTML = '<h3>Lista de ingredientes</h3>';
+
+  [...selectedRecipes].forEach(recipeId => {
+    const recipe = RECIPES.find(r => r.id === recipeId);
+    if (!recipe) return;
+    const mult = servingsMultiplier[recipeId] || 1;
+
+    const section = document.createElement('div');
+    section.className = 'ing-recipe';
+    section.innerHTML = `<h4>${recipe.name}${mult > 1 ? ' (×' + mult + ')' : ''}</h4>`;
+
+    const ul = document.createElement('ul');
+    ul.className = 'ing-list';
+
+    const ings = Array.isArray(recipe.ingredients)
+      ? recipe.ingredients
+      : Object.values(recipe.ingredients).flat();
+
+    ings.forEach(ing => {
+      const li = document.createElement('li');
+      const scaled = ing.unit === 'und' || ing.unit === 'und/tortilla' || ing.unit === 'hojas'
+        ? `${Math.round(ing.amount * mult)} ${ing.unit}`
+        : `${Math.round(ing.amount * mult)} ${ing.unit}`;
+      li.innerHTML = `<span>${ing.name}</span><span class="ing-amount">${scaled}</span>`;
+      ul.appendChild(li);
+    });
+
+    section.appendChild(ul);
+    panel.appendChild(section);
+  });
+}
+
+// ============================================================
+// FINISH
+// ============================================================
+function showFinish() {
+  // Show a congratulations message at the top of the plan
+  const list = document.getElementById('step-list');
+  const existing = document.getElementById('finish-banner');
+  if (existing) return;
+  const banner = document.createElement('div');
+  banner.id = 'finish-banner';
+  banner.className = 'finish-card';
+  banner.innerHTML = `
+    <div class="emoji">🎉</div>
+    <h2>¡Todo listo!</h2>
+    <p>Has completado todos los pasos de la preparación.</p>
+    <button class="btn btn-primary" onclick="resetAll()">🔄 Nueva sesión</button>
+  `;
+  list.prepend(banner);
+}
+
+function resetAll() {
+  selectedRecipes = new Set();
+  selectedVariants = {};
+  servingsMultiplier = {};
+  planSteps = [];
+  Object.values(timers).forEach(t => t && clearInterval(t.interval));
+  timers = {};
+  completedSteps = new Set();
+  buildScreen1();
+  setScreen(1);
+}
+
+// ============================================================
+// TABS
+// ============================================================
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach((b, i) => {
+    b.classList.toggle('active', ['plan','ingredients'][i] === tab);
+  });
+  document.getElementById('tab-plan').classList.toggle('active', tab === 'plan');
+  document.getElementById('tab-ingredients').classList.toggle('active', tab === 'ingredients');
+}
+
+// ============================================================
+// INIT
+// ============================================================
+buildScreen1();
+</script>
+</body>
+</html>
