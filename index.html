@@ -976,27 +976,26 @@ function renderVariantBtns(r, container) {
 }
 
 // ============================================================
-// PLAN BUILDER — SCHEDULING ALGORITHM
+// PLAN BUILDER — SCHEDULING ALGORITHM (greedy interleave)
 // ============================================================
 function buildPlan() {
   completedSteps = new Set();
   timers = {};
   planSteps = [];
 
-  // Collect all steps from selected recipes, filtering variants
-  const allSteps = [];
+  // Build per-recipe step lists (filtered by variant, in original order)
+  const recipeSteps = {}; // recipeId -> ordered array of step objects
 
   [...selectedRecipes].forEach(recipeId => {
     const recipe = RECIPES.find(r => r.id === recipeId);
     if (!recipe) return;
-
-    recipe.steps.forEach(step => {
-      // Skip steps that belong to a specific variant not selected
-      if (step.variant) {
-        const selected = selectedVariants[recipeId];
-        if (selected && !selected.has(step.variant)) return;
-      }
-      allSteps.push({
+    recipeSteps[recipeId] = recipe.steps
+      .filter(step => {
+        if (!step.variant) return true;
+        const sel = selectedVariants[recipeId];
+        return sel && sel.has(step.variant);
+      })
+      .map(step => ({
         key: `${recipeId}_${step.id}`,
         recipeId,
         recipeName: recipe.name,
@@ -1004,74 +1003,76 @@ function buildPlan() {
         desc: step.desc,
         duration_min: step.duration_min,
         type: step.type,
-        depends_on: recipe.depends_on || []
+        recipeDeps: recipe.depends_on || []
+      }));
+  });
+
+  // Time-aware greedy scheduler:
+  // - Passive steps run in background: after starting one, the recipe becomes
+  //   available again only after its duration elapses (cook can work elsewhere).
+  // - Active steps occupy the cook: currentTime advances by their duration.
+  // - When no steps are available right now, jump to the nearest future unlock.
+  const pointers = {};    // recipeId -> index of next unplaced step
+  const availableAt = {}; // recipeId -> earliest simulated minute it can continue
+  Object.keys(recipeSteps).forEach(id => { pointers[id] = 0; availableAt[id] = 0; });
+
+  let currentTime = 0;
+
+  while (true) {
+    // Gather candidates: recipes with a next step whose simulated unlock <= currentTime
+    const candidates = [];
+    Object.keys(recipeSteps).forEach(recipeId => {
+      const steps = recipeSteps[recipeId];
+      const ptr = pointers[recipeId];
+      if (ptr >= steps.length) return;
+      if (availableAt[recipeId] > currentTime) return; // still waiting
+
+      const step = steps[ptr];
+      // Recipe-level dependency check: all deps must be fully placed
+      const depsOk = step.recipeDeps.every(depId => {
+        const depSteps = recipeSteps[depId];
+        if (!depSteps) return true;
+        return pointers[depId] >= depSteps.length;
       });
+      if (depsOk) candidates.push(step);
     });
-  });
 
-  // Sort: prioritize long passive steps first, then by recipe dependency order,
-  // then active steps. Within same type, longer duration first.
-  allSteps.sort((a, b) => {
-    // Dependency: if recipe B depends on recipe A, A's steps come first
-    const bDependsOnA = b.depends_on.includes(a.recipeId);
-    const aDependsOnB = a.depends_on.includes(b.recipeId);
-    if (bDependsOnA) return -1;
-    if (aDependsOnB) return 1;
+    if (candidates.length === 0) {
+      // No work available right now — jump to the next recipe unlock time
+      const nextUnlock = Math.min(
+        ...Object.keys(recipeSteps)
+          .filter(id => pointers[id] < recipeSteps[id].length)
+          .map(id => availableAt[id])
+      );
+      if (!isFinite(nextUnlock) || nextUnlock <= currentTime) break; // nothing left
+      currentTime = nextUnlock;
+      continue;
+    }
 
-    // Long passive steps first
-    const scoreA = a.type === 'pasivo' ? a.duration_min * 2 : a.duration_min;
-    const scoreB = b.type === 'pasivo' ? b.duration_min * 2 : b.duration_min;
-    return scoreB - scoreA;
-  });
+    // Score: passive steps score 3× their duration; active steps score 1×
+    candidates.sort((a, b) => {
+      const scoreA = a.type === 'pasivo' ? a.duration_min * 3 : a.duration_min;
+      const scoreB = b.type === 'pasivo' ? b.duration_min * 3 : b.duration_min;
+      return scoreB - scoreA;
+    });
 
-  // Rebuild maintaining sequential order within each recipe
-  const recipeOrder = getOptimalRecipeOrder();
-  planSteps = [];
-  recipeOrder.forEach(recipeId => {
-    const steps = allSteps.filter(s => s.recipeId === recipeId);
-    // Keep original step order within recipe, but flag the first step of each
-    steps.sort((a, b) => a.stepId - b.stepId);
-    planSteps.push(...steps);
-  });
+    const best = candidates[0];
+    planSteps.push(best);
+    pointers[best.recipeId]++;
+
+    if (best.type === 'pasivo') {
+      // Passive: runs in background — recipe unlocks after its duration
+      availableAt[best.recipeId] = currentTime + best.duration_min;
+      // Cook is free immediately to pick up other work
+    } else {
+      // Active: occupies the cook — advance simulated time
+      currentTime += best.duration_min;
+      availableAt[best.recipeId] = currentTime;
+    }
+  }
 
   renderPlan();
   renderIngredients();
-}
-
-function getOptimalRecipeOrder() {
-  // Sort recipes: dependencies first, then by longest passive time descending
-  const recipes = [...selectedRecipes].map(id => RECIPES.find(r => r.id === id)).filter(Boolean);
-
-  const sorted = [];
-  const remaining = new Set(recipes.map(r => r.id));
-
-  // Topological sort + priority
-  while (remaining.size > 0) {
-    const available = [...remaining].filter(id => {
-      const r = RECIPES.find(x => x.id === id);
-      return !r.depends_on || r.depends_on.every(dep => !remaining.has(dep));
-    });
-
-    // Among available, pick the one with longest passive time
-    available.sort((a, b) => {
-      const ra = RECIPES.find(x => x.id === a);
-      const rb = RECIPES.find(x => x.id === b);
-      const passiveA = ra.steps.filter(s => s.type === 'pasivo').reduce((acc, s) => acc + s.duration_min, 0);
-      const passiveB = rb.steps.filter(s => s.type === 'pasivo').reduce((acc, s) => acc + s.duration_min, 0);
-      return passiveB - passiveA;
-    });
-
-    if (available.length === 0) {
-      // Cycle or unresolved dep — add remaining as-is
-      [...remaining].forEach(id => { sorted.push(id); remaining.delete(id); });
-      break;
-    }
-
-    sorted.push(available[0]);
-    remaining.delete(available[0]);
-  }
-
-  return sorted;
 }
 
 // ============================================================
